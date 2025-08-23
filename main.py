@@ -140,6 +140,13 @@ class SecurePasswordManager:
         self.password_entry = ttk.Entry(self.main_frame, show="*")
         self.password_entry.pack(pady=5)
         ttk.Button(self.main_frame, text="Add Password", command=self._add_password).pack(pady=10)
+        
+        # Adding Search box to search about services' passwords
+        ttk.Label(self.main_frame, text="Search services:").pack()
+        self.search_entry = ttk.Entry(self.main_frame)
+        self.search_entry.pack(pady=5)
+        # bind the typing event here
+        self.search_entry.bind("<KeyRelease>", lambda e: self._search_entries())
 
         # Password list
         self.tree = ttk.Treeview(self.main_frame, columns=("Service", "Username", "Password"), show="headings")
@@ -161,6 +168,16 @@ class SecurePasswordManager:
         self.tree.bind("<Command-c>", self._copy_password)
 
         self._update_treeview()
+
+    def _search_entries(self):
+        query = self.search_entry.get().lower()
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        # self.search_entry.bind("<KeyRelease>", lambda e: self._search_entries())
+        for service, details in self.entries.items():
+            if query in service.lower() or query in details["username"].lower():
+                self.tree.insert("", tk.END, values=(service, details["username"], "****"))
+            # self.tree.insert("", tk.END, values=(service, details["username"], "****"))
 
     def _add_password(self):
         """Add a new password entry."""
