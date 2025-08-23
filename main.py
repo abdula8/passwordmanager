@@ -10,6 +10,11 @@ import hashlib
 from getpass import getpass
 import pyperclip
 import keyring  # Added for secure OS credential storage
+from setup_helper import full_setup
+
+# Install important libraries for this scritp, automatically
+full_setup()
+
 
 class SecurePasswordManager:
     def __init__(self):
