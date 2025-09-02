@@ -11,10 +11,9 @@ from getpass import getpass
 import pyperclip
 import keyring  # Added for secure OS credential storage
 from setup_helper import full_setup
-from passGen import generate_password
+from passGen import generate_password  # Import the password generator
 
-
-# Install important libraries for this scritp, automatically
+# Install important libraries for this script, automatically
 full_setup()
 
 
@@ -139,27 +138,10 @@ class SecurePasswordManager:
         self.username_entry = ttk.Entry(self.main_frame)
         self.username_entry.pack(pady=5)
         ttk.Label(self.main_frame, text="Password:").pack()
-        
-        # --- Start of new row for password entry, length, and generate button ---
-        pw_row = ttk.Frame(self.main_frame)
-        pw_row.pack(pady=5, fill="x")
-
-        self.password_entry = ttk.Entry(pw_row, show="*", width=30)
-        self.password_entry.pack(side="left", fill="x", expand=True)
-
-        self.length_entry = ttk.Entry(pw_row, width=5)
-        self.length_entry.pack(side="left", padx=5)
-        self.length_entry.insert(0, "16")  # Default value
-
-        # ttk.Button(pw_row, text="Generate", command=self._generate_password).pack(side="left")
-        ttk.Button(pw_row, text="Generate", command=self._generate_password).pack(pady=10)
-        # --- End of new row ---
-
-        # self.password_entry = ttk.Entry(self.main_frame, show="*")
-        # self.password_entry.pack(pady=5)
+        self.password_entry = ttk.Entry(self.main_frame, show="*")
+        self.password_entry.pack(pady=5)
+        ttk.Button(self.main_frame, text="Generate Password", command=self._generate_password).pack(pady=5)
         ttk.Button(self.main_frame, text="Add Password", command=self._add_password).pack(pady=10)
-        # self.password_entry.pack(pady=5)
-        # ttk.Button(self.main_frame, text="Generate", command=self._generate_password).pack(pady=10)
         
         # Adding Search box to search about services' passwords
         ttk.Label(self.main_frame, text="Search services:").pack()
@@ -189,15 +171,19 @@ class SecurePasswordManager:
 
         self._update_treeview()
 
+    def _generate_password(self):
+        """Generate a random password and fill the password entry."""
+        password = generate_password(length=12, include_uppercase=True, include_numbers=True, include_symbols=True)
+        self.password_entry.delete(0, tk.END)
+        self.password_entry.insert(0, password)
+
     def _search_entries(self):
         query = self.search_entry.get().lower()
         for item in self.tree.get_children():
             self.tree.delete(item)
-        # self.search_entry.bind("<KeyRelease>", lambda e: self._search_entries())
         for service, details in self.entries.items():
             if query in service.lower() or query in details["username"].lower():
                 self.tree.insert("", tk.END, values=(service, details["username"], "****"))
-            # self.tree.insert("", tk.END, values=(service, details["username"], "****"))
 
     def _add_password(self):
         """Add a new password entry."""
@@ -217,19 +203,6 @@ class SecurePasswordManager:
             password = None
         else:
             messagebox.showerror("Error", "All fields are required.")
-    
-    def _generate_password(self):
-        """Generate a password and insert it into the password entry field."""
-        try:
-            length = int(self.length_entry.get())
-            if length < 8:
-                messagebox.showwarning("Warning", "Password length should be at least 8.")
-                length = 8
-        except Exception:
-            length = 16  # Default if invalid or empty
-        password = generate_password(length)
-        self.password_entry.delete(0, tk.END)
-        self.password_entry.insert(0, password)
 
     def _update_treeview(self):
         """Update the Treeview with current entries."""
@@ -237,9 +210,9 @@ class SecurePasswordManager:
             self.tree.delete(item)
         for service, details in self.entries.items():
             self.tree.insert("", tk.END, values=(service, details["username"], "****"))
+
     def _show_context_menu(self, event):
         """Show the right-click context menu at the cursor position."""
-        # Select the item under the cursor
         item = self.tree.identify_row(event.y)
         if item:
             self.tree.selection_set(item)
@@ -269,40 +242,18 @@ class SecurePasswordManager:
             messagebox.showwarning("Warning", "Select an entry to show the password.")
             return
         service = self.tree.item(selected)["values"][0]
-        # password = self.entries[service]["password"]
         password = keyring.get_password("SecurePasswordManager", f"{service}_password")
         if password:
-            # Update Treeview to show the password
             self.tree.item(selected, values=(service, self.entries[service]["username"], password))
-            # Schedule hiding the password after 5 seconds
             self.root.after(5000, lambda: self._hide_password(selected, service))
             password = None  # Minimize memory exposure
         else:
             messagebox.showerror("Error", "Failed to retrieve password.")
 
-        # Update Treeview to show the password
-        self.tree.item(selected, values=(service, self.entries[service]["username"], password))
-
-        # Schedule hiding the password after 5 seconds
-        self.root.after(500, lambda: self._hide_password(selected, service))
-    
     def _hide_password(self, item, service):
         """Hide the password in the Treeview by reverting to asterisks."""
         if item in self.tree.get_children():  # Check if item still exists
             self.tree.item(item, values=(service, self.entries[service]["username"], "****"))
-        # Note: Python's garbage collector may retain 'password' in memory.
-        # For better security, use a library like 'securestring' to zero-out memory.
-
-
-    # def _show_password(self):
-    #     """Show the selected password."""
-    #     selected = self.tree.selection()
-    #     if not selected:
-    #         messagebox.showwarning("Warning", "Select an entry to show the password.")
-    #         return
-    #     service = self.tree.item(selected)["values"][0]
-    #     password = self.entries[service]["password"]
-    #     messagebox.showinfo("Password", f"Service: {service}\nPassword: {password}")
 
     def run(self):
         """Run the application."""
